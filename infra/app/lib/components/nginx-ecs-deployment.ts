@@ -79,9 +79,10 @@ export class NginxEcsDeployment extends Construct {
                 mode: cdk.aws_ecs.AwsLogDriverMode.NON_BLOCKING,
             }),
             essential: true,
+            user: 'nginx',
             portMappings: [
                 {
-                    containerPort: 80,
+                    containerPort: 8080,
                 }
             ],
             healthCheck: {
@@ -142,7 +143,7 @@ export class NginxEcsDeployment extends Construct {
         const alb = new PublicAlb(this, 'PublicAlb', {
             vpc: service.cluster.vpc,
             targets: [service],
-            targetPort: 80,
+            targetPort: 8080,
             certificate: tlsCert.certificate,
         });
         return alb;

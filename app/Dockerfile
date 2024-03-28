@@ -1,1 +1,1 @@
-FROM nginx:stable-alpine3.17-slim
+FROM nginxinc/nginx-unprivileged:stable-alpine3.18-slim
