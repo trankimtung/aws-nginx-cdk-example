@@ -64,9 +64,14 @@ export class NginxEcsDeployment extends Construct {
             runtimePlatform: {
                 operatingSystemFamily: cdk.aws_ecs.OperatingSystemFamily.LINUX,
                 cpuArchitecture: cdk.aws_ecs.CpuArchitecture.ARM64,
-            }
+            },
+            volumes: [
+                {
+                    name: 'tmp',
+                },
+            ],
         });
-        taskDefinition.addContainer('AppContainer', {
+        const appContainer = taskDefinition.addContainer('AppContainer', {
             containerName: 'app',
             // Build the Docker image from the app directory
             image: cdk.aws_ecs.ContainerImage.fromAsset('../../app', {
@@ -80,6 +85,7 @@ export class NginxEcsDeployment extends Construct {
             }),
             essential: true,
             user: 'nginx',
+            readonlyRootFilesystem: true,
             portMappings: [
                 {
                     containerPort: 8080,
@@ -97,6 +103,11 @@ export class NginxEcsDeployment extends Construct {
                 startPeriod: cdk.Duration.seconds(10),
             },
         });
+        appContainer.addMountPoints({
+            containerPath: '/tmp',
+            sourceVolume: 'tmp',
+            readOnly: false,
+        });
         return taskDefinition;
     }
 
@@ -108,7 +119,7 @@ export class NginxEcsDeployment extends Construct {
             cluster: cluster,
             taskDefinition: taskDefinition,
             vpcSubnets: {
-                subnetType: cdk.aws_ec2.SubnetType.PRIVATE_ISOLATED,
+                subnetType: cdk.aws_ec2.SubnetType.PRIVATE_ISOLATED, // do not expose task instances to the internet
             },
         })
 
