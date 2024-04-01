@@ -69,6 +69,15 @@ export class Vpc0 extends Construct {
         vpc.addInterfaceEndpoint('ECS_TELEMETRY', {
             service: cdk.aws_ec2.InterfaceVpcEndpointAwsService.ECS_TELEMETRY,
         });
+        vpc.addInterfaceEndpoint('SSM', {
+            service: cdk.aws_ec2.InterfaceVpcEndpointAwsService.SSM,
+        });
+        vpc.addInterfaceEndpoint('SSM_MESSAGES', {
+            service: cdk.aws_ec2.InterfaceVpcEndpointAwsService.SSM_MESSAGES,
+        });
+        vpc.addInterfaceEndpoint('EC2_MESSAGES', {
+            service: cdk.aws_ec2.InterfaceVpcEndpointAwsService.EC2_MESSAGES,
+        });
         cdk.Tags.of(vpc).add('example.com/vpc-name', vpcName);
         return vpc;
     }
