@@ -29,7 +29,7 @@ Ensure below tools, with correct versions, are installed:
 - AWS CDK v2.133.0
 - Docker
 
-> Use a Developemt Container with the provided `.devcontainer` configuration to avoid having to install these tools manually.
+> Use a Development Container with the provided `.devcontainer` configuration to avoid having to install these tools manually.
 
 ## Steps
 
