@@ -91,7 +91,7 @@ export class NginxEcsDeployment extends Construct {
             readonlyRootFilesystem: true,
             portMappings: [
                 {
-                    containerPort: 8080,
+                    containerPort: 8443,
                 }
             ],
             healthCheck: {
@@ -179,7 +179,9 @@ export class NginxEcsDeployment extends Construct {
         const alb = new PublicAlb(this, 'PublicAlb', {
             vpc: service.cluster.vpc,
             targets: [service],
-            targetPort: 8080,
+            targetPort: 8443,
+            targetProtocol: cdk.aws_elasticloadbalancingv2.ApplicationProtocol.HTTPS,
+            targetProtocolVersion: cdk.aws_elasticloadbalancingv2.ApplicationProtocolVersion.HTTP2,
             certificate: tlsCert.certificate,
         });
         return alb;

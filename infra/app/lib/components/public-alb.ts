@@ -6,6 +6,8 @@ interface CustomLoadBalancerProps {
     vpc: cdk.aws_ec2.IVpc;
     targets: elbv2.IApplicationLoadBalancerTarget[];
     targetPort: number;
+    targetProtocol: elbv2.ApplicationProtocol;
+    targetProtocolVersion: elbv2.ApplicationProtocolVersion;
     certificate: elbv2.IListenerCertificate;
 }
 
@@ -53,6 +55,8 @@ export class PublicAlb extends Construct {
         listener.addTargets('DefaultTargets', {
             targets: targets,
             port: targetPort,
+            protocol: this.props.targetProtocol,
+            protocolVersion: this.props.targetProtocolVersion,
         });
         return listener;
     }
