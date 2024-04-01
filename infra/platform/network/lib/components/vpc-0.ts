@@ -60,6 +60,15 @@ export class Vpc0 extends Construct {
         vpc.addInterfaceEndpoint('SECRETS_MANAGER', {
             service: cdk.aws_ec2.InterfaceVpcEndpointAwsService.SECRETS_MANAGER,
         });
+        vpc.addInterfaceEndpoint('ECS', {
+            service: cdk.aws_ec2.InterfaceVpcEndpointAwsService.ECS,
+        });
+        vpc.addInterfaceEndpoint('ECS_AGENT', {
+            service: cdk.aws_ec2.InterfaceVpcEndpointAwsService.ECS_AGENT,
+        });
+        vpc.addInterfaceEndpoint('ECS_TELEMETRY', {
+            service: cdk.aws_ec2.InterfaceVpcEndpointAwsService.ECS_TELEMETRY,
+        });
         cdk.Tags.of(vpc).add('example.com/vpc-name', vpcName);
         return vpc;
     }
