@@ -26,7 +26,8 @@ export class NginxEcsDeployment extends Construct {
 
         // Create ECS task definition and service
         this.taskDefinition = this.createTaskDefinition();
-        this.service = this.createService(this.cluster, this.taskDefinition);
+        // this.service = this.createFargateService(this.cluster, this.taskDefinition);
+        this.service = this.createEc2Service(this.cluster, this.taskDefinition);
 
         // Lookup existing r53-public-0 route53 hosted zone
         this.publicHostedZone = this.lookupR53Public0Zone();
@@ -58,9 +59,11 @@ export class NginxEcsDeployment extends Construct {
      * Create task definition
      */
     private createTaskDefinition(): cdk.aws_ecs.TaskDefinition {
-        const taskDefinition = new cdk.aws_ecs.FargateTaskDefinition(this, 'TaskDefinition', {
-            cpu: 256,
-            memoryLimitMiB: 512,
+        const taskDefinition = new cdk.aws_ecs.TaskDefinition(this, 'Ec2TaskDefinition', {
+            compatibility: cdk.aws_ecs.Compatibility.EC2_AND_FARGATE,
+            cpu: '256',
+            memoryMiB: '512',
+            networkMode: cdk.aws_ecs.NetworkMode.AWS_VPC,
             runtimePlatform: {
                 operatingSystemFamily: cdk.aws_ecs.OperatingSystemFamily.LINUX,
                 cpuArchitecture: cdk.aws_ecs.CpuArchitecture.ARM64,
@@ -112,15 +115,37 @@ export class NginxEcsDeployment extends Construct {
     }
 
     /**
-     * Create ecs service
+     * Create ecs service with Fargate launch type
      */
-    private createService(cluster: cdk.aws_ecs.ICluster, taskDefinition: cdk.aws_ecs.TaskDefinition): cdk.aws_ecs.FargateService {
+    private createFargateService(cluster: cdk.aws_ecs.ICluster, taskDefinition: cdk.aws_ecs.TaskDefinition): cdk.aws_ecs.FargateService {
         const service = new cdk.aws_ecs.FargateService(this, 'Service', {
             cluster: cluster,
             taskDefinition: taskDefinition,
             vpcSubnets: {
                 subnetType: cdk.aws_ec2.SubnetType.PRIVATE_ISOLATED, // do not expose task instances to the internet
             },
+        })
+
+        // Auto scaling
+        const scaling = service.autoScaleTaskCount({
+            maxCapacity: 10,
+            minCapacity: 1,
+        });
+        scaling.scaleOnCpuUtilization('CpuScaling', {
+            targetUtilizationPercent: 60,
+        });
+
+        return service;
+    }
+
+    /**
+     * Create ecs service with EC2 launch type
+     */
+    private createEc2Service(cluster: cdk.aws_ecs.ICluster, taskDefinition: cdk.aws_ecs.TaskDefinition): cdk.aws_ecs.Ec2Service {
+        const service = new cdk.aws_ecs.Ec2Service(this, 'Ec2Service', {
+            cluster: cluster,
+            taskDefinition: taskDefinition,
+            enableECSManagedTags: true,
         })
 
         // Auto scaling
