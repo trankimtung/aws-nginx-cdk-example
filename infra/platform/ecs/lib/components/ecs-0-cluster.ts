@@ -16,17 +16,15 @@ export class Ecs0Cluster extends Construct {
             vpcId: vpc0Id,
         });
 
-        this.cluster = this.createEcsCluster(vpc0);
+        // this.cluster = this.createEcsClusterWithFargateCapacityProvider(vpc0);
+        this.cluster = this.createEcsClusterWithEc2CapacityProvider(vpc0);
         this.exportParams(this.cluster);
     }
 
     /**
-     * Create ecs-0 cluster
-     * 
-     * @param vpc vpc
-     * @returns ecs-0 cluster
+     * Create ecs-0 cluster with Fargate capacity providers.
      */
-    private createEcsCluster(vpc: cdk.aws_ec2.IVpc): cdk.aws_ecs.ICluster {
+    private createEcsClusterWithFargateCapacityProvider(vpc: cdk.aws_ec2.IVpc): cdk.aws_ecs.ICluster {
         const cluster = new cdk.aws_ecs.Cluster(this, 'Cluster', {
             clusterName: 'ecs-0',
             vpc: vpc,
@@ -43,13 +41,69 @@ export class Ecs0Cluster extends Construct {
                 weight: 10, // prioritize FARGATE_SPOT over FARGATE to reduce cost
             },
         ]);
+
+        return cluster;
+    }
+
+    /**
+     * Create ecs-0 cluster with EC2 capacity providers.
+     * 
+     * This is particularly useful for organizations with strict security and compliance requirements, 
+     * or running workloads that require specialized hardware (GPUs, FPGAs, etc.)
+     */
+    private createEcsClusterWithEc2CapacityProvider(vpc: cdk.aws_ec2.IVpc): cdk.aws_ecs.ICluster {
+        const cluster = new cdk.aws_ecs.Cluster(this, 'Cluster', {
+            clusterName: 'ecs-0',
+            vpc: vpc,
+            containerInsights: true,
+        });
+        const arm64Asg = new cdk.aws_autoscaling.AutoScalingGroup(this, 'ARM64ASG', {
+            vpc: vpc,
+            instanceType: new cdk.aws_ec2.InstanceType('t4g.medium'),
+            machineImage: new cdk.aws_ecs.BottleRocketImage({
+                architecture: cdk.aws_ec2.InstanceArchitecture.ARM_64,
+                variant: cdk.aws_ecs.BottlerocketEcsVariant.AWS_ECS_2,
+            }), // can be replaced with a hardened AMI
+            minCapacity: 1,
+            maxCapacity: 10,
+            vpcSubnets: {
+                subnetType: cdk.aws_ec2.SubnetType.PRIVATE_ISOLATED, // deploy EC2 instances to isolated subnets without internet access
+            },
+            groupMetrics: [cdk.aws_autoscaling.GroupMetrics.all()],
+            newInstancesProtectedFromScaleIn: true,
+            requireImdsv2: true,
+            ssmSessionPermissions: true,
+            maxInstanceLifetime: cdk.Duration.days(360),
+            minHealthyPercentage: 30,
+            maxHealthyPercentage: 100,
+            updatePolicy: cdk.aws_autoscaling.UpdatePolicy.rollingUpdate({
+                pauseTime: cdk.Duration.minutes(5),
+                minInstancesInService: 1,
+                maxBatchSize: 5,
+            }),
+        });
+        const arm64CapacityProvider = new cdk.aws_ecs.AsgCapacityProvider(this, 'ARM64CapacityProvider', {
+            capacityProviderName: 'arm64',
+            autoScalingGroup: arm64Asg,
+            machineImageType: cdk.aws_ecs.MachineImageType.BOTTLEROCKET,
+            enableManagedTerminationProtection: true,
+            enableManagedDraining: true,
+            enableManagedScaling: true,
+            spotInstanceDraining: true,
+            canContainersAccessInstanceRole: false,
+        });
+        cluster.addAsgCapacityProvider(arm64CapacityProvider);
+        cluster.addDefaultCapacityProviderStrategy([
+            {
+                capacityProvider: arm64CapacityProvider.capacityProviderName,
+                weight: 1,
+            },
+        ]);
         return cluster;
     }
 
     /**
      * Export parameters to SSM and CloudFormation outputs
-     * 
-     * @param cluster ecs cluster
      */
     private exportParams(cluster: cdk.aws_ecs.ICluster) {
         // Output the ECS cluster ARN
