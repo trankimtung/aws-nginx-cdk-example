@@ -64,4 +64,3 @@ cdk destroy
 # License
 
 This example is licensed under the MIT No Attribution License (MIT-0). See the `LICENSE` file for more information.
-```
