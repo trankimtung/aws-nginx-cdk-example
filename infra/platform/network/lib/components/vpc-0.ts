@@ -86,7 +86,7 @@ export class Vpc0 extends Construct {
      * Export parameters to SSM and CloudFormation outputs
      */
     private exportParams(vpc: cdk.aws_ec2.IVpc) {
-        // Output the VPC IDcdk.aws_ec2.IVpc) {
+        // Output the VPC ID
         new cdk.CfnOutput(this, 'VpcId', {
             value: vpc.vpcId,
         });
