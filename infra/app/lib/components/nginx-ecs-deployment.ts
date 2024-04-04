@@ -212,12 +212,12 @@ export class NginxEcsDeployment extends Construct {
     private exportParams(service: cdk.aws_ecs.FargateService, publicLoadBalancer: PublicAlb, publicAliasRecord: cdk.aws_route53.ARecord) {
         // Output the ECS service ARN
         new cdk.CfnOutput(this, 'EcsServiceArn', {
-            value: this.service.serviceArn,
+            value: service.serviceArn,
         });
 
         // Output the public load balancer ARN
         new cdk.CfnOutput(this, 'PublicLoadBalancerArn', {
-            value: this.publicLoadBalancer.loadBalancer.loadBalancerArn,
+            value: publicLoadBalancer.loadBalancer.loadBalancerArn,
         });
 
         // Output the public load balancer DNS name
